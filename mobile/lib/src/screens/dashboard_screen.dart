@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:nutrilens_mobile/src/api_client.dart';
 import 'package:nutrilens_mobile/src/models.dart';
+import 'package:nutrilens_mobile/src/screens/barcode_lookup_screen.dart';
+import 'package:nutrilens_mobile/src/screens/favorites_screen.dart';
 import 'package:nutrilens_mobile/src/screens/food_search_screen.dart';
+import 'package:nutrilens_mobile/src/screens/history_screen.dart';
+import 'package:nutrilens_mobile/src/screens/settings_screen.dart';
+import 'package:nutrilens_mobile/src/screens/weekly_progress_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({
@@ -80,6 +85,37 @@ class _DashboardScreenState extends State<DashboardScreen> {
             onPressed: _load,
             icon: const Icon(Icons.refresh),
           ),
+          PopupMenuButton<String>(
+            onSelected: (value) async {
+              if (value == 'history') {
+                await Navigator.of(context).push(MaterialPageRoute(builder: (_) => HistoryScreen(api: widget.api)));
+              } else if (value == 'progress') {
+                await Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => WeeklyProgressScreen(api: widget.api)),
+                );
+              } else if (value == 'favorites') {
+                await Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => FavoritesScreen(api: widget.api)),
+                );
+              } else if (value == 'barcode') {
+                await Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => BarcodeLookupScreen(api: widget.api)),
+                );
+              } else if (value == 'settings') {
+                await Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => SettingsScreen(api: widget.api)),
+                );
+              }
+              if (mounted) _load();
+            },
+            itemBuilder: (context) => const [
+              PopupMenuItem(value: 'history', child: Text('History & Saved Meals')),
+              PopupMenuItem(value: 'favorites', child: Text('Favorites & Recents')),
+              PopupMenuItem(value: 'progress', child: Text('Weekly Progress')),
+              PopupMenuItem(value: 'barcode', child: Text('Barcode Lookup')),
+              PopupMenuItem(value: 'settings', child: Text('Goals & Reminders')),
+            ],
+          ),
         ],
       ),
       body: Container(
@@ -108,6 +144,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
             foregroundColor: scheme.onPrimaryContainer,
             icon: const Icon(Icons.water_drop),
             label: const Text('+250ml'),
+          ),
+          const SizedBox(height: 10),
+          FloatingActionButton.extended(
+            heroTag: 'barcode',
+            onPressed: () async {
+              await Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => BarcodeLookupScreen(api: widget.api),
+                ),
+              );
+              if (mounted) _load();
+            },
+            icon: const Icon(Icons.qr_code),
+            label: const Text('Barcode'),
           ),
           const SizedBox(height: 10),
           FloatingActionButton.extended(

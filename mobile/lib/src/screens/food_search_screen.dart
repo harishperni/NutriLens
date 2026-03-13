@@ -17,6 +17,7 @@ class _FoodSearchScreenState extends State<FoodSearchScreen> {
   String _mealType = 'breakfast';
   String _provider = 'all';
   List<FoodItem> _results = [];
+  Set<int> _favoriteFoodIds = {};
   String? _error;
   bool _loading = false;
   final List<String> _quickSearch = [
@@ -50,12 +51,14 @@ class _FoodSearchScreenState extends State<FoodSearchScreen> {
       _error = null;
     });
     try {
+      final favorites = await widget.api.getFavorites();
       final providerParam = _provider == 'all' ? null : _provider;
       final results = await widget.api.searchFoods(
         _searchCtrl.text.trim(),
         provider: providerParam,
       );
       setState(() {
+        _favoriteFoodIds = favorites.map((e) => e.foodId).where((id) => id > 0).toSet();
         _results = results;
       });
     } catch (e) {
@@ -67,6 +70,16 @@ class _FoodSearchScreenState extends State<FoodSearchScreen> {
         _loading = false;
       });
     }
+  }
+
+  Future<void> _toggleFavorite(FoodItem item) async {
+    if (_favoriteFoodIds.contains(item.id)) return;
+    try {
+      await widget.api.addFavorite(item.id);
+      setState(() => _favoriteFoodIds.add(item.id));
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Added to favorites')));
+    } catch (_) {}
   }
 
   Future<void> _logFood(FoodItem item) async {
@@ -254,10 +267,29 @@ class _FoodSearchScreenState extends State<FoodSearchScreen> {
                                       ),
                                     ],
                   ),
-                                  trailing: FilledButton.tonalIcon(
-                                    onPressed: () => _logFood(item),
-                                    icon: const Icon(Icons.add),
-                                    label: const Text('Log'),
+                                  trailing: SizedBox(
+                                    width: 124,
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.end,
+                                      children: [
+                                        IconButton(
+                                          tooltip: 'Favorite',
+                                          onPressed: () => _toggleFavorite(item),
+                                          icon: Icon(
+                                            _favoriteFoodIds.contains(item.id)
+                                                ? Icons.favorite
+                                                : Icons.favorite_border,
+                                            color: _favoriteFoodIds.contains(item.id)
+                                                ? Colors.red
+                                                : null,
+                                          ),
+                                        ),
+                                        FilledButton.tonal(
+                                          onPressed: () => _logFood(item),
+                                          child: const Text('Log'),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),

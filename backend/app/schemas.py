@@ -124,3 +124,103 @@ class DashboardResponse(BaseModel):
     total_calcium_mg: float
     water_ml: int
     targets: GoalOut
+
+
+class MealLogItemUpdateRequest(BaseModel):
+    grams: float = Field(gt=0, le=2000)
+    meal_type: str = Field(pattern="^(breakfast|lunch|dinner|snacks)$")
+
+
+class FavoriteFoodCreateRequest(BaseModel):
+    food_id: int
+
+
+class FavoriteFoodOut(BaseModel):
+    id: int
+    food_id: int
+    food_name: str
+    source: str
+
+
+class SavedMealItemInput(BaseModel):
+    meal_type: str = Field(pattern="^(breakfast|lunch|dinner|snacks)$")
+    food_id: Optional[int] = None
+    food_name: str
+    grams: float = Field(default=100.0, gt=0)
+    calories: float = Field(default=0.0, ge=0)
+    protein_g: float = Field(default=0.0, ge=0)
+    carbs_g: float = Field(default=0.0, ge=0)
+    fat_g: float = Field(default=0.0, ge=0)
+
+
+class SavedMealCreateRequest(BaseModel):
+    name: str = Field(min_length=2, max_length=120)
+    items: list[SavedMealItemInput]
+
+
+class SavedMealItemOut(BaseModel):
+    id: int
+    meal_type: str
+    food_id: Optional[int]
+    food_name: str
+    grams: float
+    calories: float
+    protein_g: float
+    carbs_g: float
+    fat_g: float
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class SavedMealOut(BaseModel):
+    id: int
+    name: str
+    items: list[SavedMealItemOut]
+
+
+class SavedMealLogRequest(BaseModel):
+    date: date
+
+
+class WeeklySummaryDay(BaseModel):
+    date: date
+    calories: float
+    protein_g: float
+    carbs_g: float
+    fat_g: float
+    water_ml: int
+
+
+class WeeklySummaryResponse(BaseModel):
+    days: list[WeeklySummaryDay]
+    average_calories: float
+    average_protein_g: float
+    average_carbs_g: float
+    average_fat_g: float
+    average_water_ml: float
+
+
+class NotificationPreferenceOut(BaseModel):
+    breakfast_enabled: int
+    lunch_enabled: int
+    dinner_enabled: int
+    snacks_enabled: int
+    water_enabled: int
+    breakfast_time: str
+    lunch_time: str
+    dinner_time: str
+    water_interval_minutes: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class NotificationPreferenceUpdateRequest(BaseModel):
+    breakfast_enabled: int = Field(ge=0, le=1)
+    lunch_enabled: int = Field(ge=0, le=1)
+    dinner_enabled: int = Field(ge=0, le=1)
+    snacks_enabled: int = Field(ge=0, le=1)
+    water_enabled: int = Field(ge=0, le=1)
+    breakfast_time: str = Field(pattern=r"^\d{2}:\d{2}$")
+    lunch_time: str = Field(pattern=r"^\d{2}:\d{2}$")
+    dinner_time: str = Field(pattern=r"^\d{2}:\d{2}$")
+    water_interval_minutes: int = Field(ge=15, le=480)

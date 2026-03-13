@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.db import Base, SessionLocal, engine
-from app.routers import auth, dashboard, foods, meals, profile
+from app.routers import auth, dashboard, features, foods, meals, profile
 from app.seed import seed_foods_if_empty
 
 
@@ -29,10 +29,10 @@ app.include_router(auth.router)
 app.include_router(profile.router)
 app.include_router(foods.router)
 app.include_router(meals.router)
+app.include_router(features.router)
 app.include_router(dashboard.router)
 
 
 @app.get("/health")
 def health():
     return {"status": "ok"}
-

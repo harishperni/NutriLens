@@ -101,3 +101,62 @@ class HydrationLog(Base):
     log_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
     amount_ml: Mapped[int] = mapped_column(Integer, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class FavoriteFood(Base):
+    __tablename__ = "favorite_foods"
+    __table_args__ = (UniqueConstraint("user_id", "food_id", name="uq_favorite_food_user_food"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+    food_id: Mapped[int] = mapped_column(ForeignKey("foods.id"), nullable=False, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class SavedMeal(Base):
+    __tablename__ = "saved_meals"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+    name: Mapped[str] = mapped_column(String(120), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+    items: Mapped[list["SavedMealItem"]] = relationship(
+        back_populates="saved_meal",
+        cascade="all, delete-orphan",
+    )
+
+
+class SavedMealItem(Base):
+    __tablename__ = "saved_meal_items"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    saved_meal_id: Mapped[int] = mapped_column(ForeignKey("saved_meals.id"), nullable=False, index=True)
+    meal_type: Mapped[str] = mapped_column(String(20), nullable=False, default="lunch")
+    food_id: Mapped[Optional[int]] = mapped_column(ForeignKey("foods.id"), nullable=True)
+    food_name: Mapped[str] = mapped_column(String(180), nullable=False)
+    grams: Mapped[float] = mapped_column(Float, default=100.0, nullable=False)
+    calories: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    protein_g: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    carbs_g: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    fat_g: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+
+    saved_meal: Mapped[SavedMeal] = relationship(back_populates="items")
+
+
+class NotificationPreference(Base):
+    __tablename__ = "notification_preferences"
+    __table_args__ = (UniqueConstraint("user_id", name="uq_notification_preferences_user"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+    breakfast_enabled: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    lunch_enabled: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    dinner_enabled: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    snacks_enabled: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    water_enabled: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    breakfast_time: Mapped[str] = mapped_column(String(5), default="08:00", nullable=False)
+    lunch_time: Mapped[str] = mapped_column(String(5), default="13:00", nullable=False)
+    dinner_time: Mapped[str] = mapped_column(String(5), default="19:00", nullable=False)
+    water_interval_minutes: Mapped[int] = mapped_column(Integer, default=120, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)

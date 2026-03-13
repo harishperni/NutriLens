@@ -1,6 +1,7 @@
 from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import and_
 from sqlalchemy.orm import Session
 
 from app.deps import get_current_user, get_db
@@ -10,6 +11,7 @@ from app.schemas import (
     MealLogDayResponse,
     MealLogItemCreateRequest,
     MealLogItemOut,
+    MealLogItemUpdateRequest,
 )
 
 
@@ -124,6 +126,70 @@ def delete_meal_log_item(
     db.commit()
 
 
+@router.patch("/meal-logs/items/{item_id}", response_model=MealLogItemOut)
+def update_meal_log_item(
+    item_id: int,
+    payload: MealLogItemUpdateRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    item = (
+        db.query(MealLogItem)
+        .join(MealLog, MealLog.id == MealLogItem.meal_log_id)
+        .filter(MealLogItem.id == item_id, MealLog.user_id == current_user.id)
+        .first()
+    )
+    if not item:
+        raise HTTPException(status_code=404, detail="Meal log item not found")
+
+    item.meal_type = payload.meal_type
+    item.grams = payload.grams
+    if item.food_id:
+        food = db.query(Food).filter(Food.id == item.food_id).first()
+        if food:
+            nutrients = _from_food(food, payload.grams)
+            item.calories = nutrients["calories"]
+            item.protein_g = nutrients["protein_g"]
+            item.carbs_g = nutrients["carbs_g"]
+            item.fat_g = nutrients["fat_g"]
+            item.sodium_mg = nutrients["sodium_mg"]
+            item.iron_mg = nutrients["iron_mg"]
+            item.calcium_mg = nutrients["calcium_mg"]
+    db.commit()
+    db.refresh(item)
+    return MealLogItemOut.model_validate(item)
+
+
+@router.get("/meal-logs/range", response_model=list[MealLogDayResponse])
+def get_meal_logs_range(
+    date_from: date = Query(alias="date_from"),
+    date_to: date = Query(alias="date_to"),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    rows = (
+        db.query(MealLog)
+        .filter(
+            and_(
+                MealLog.user_id == current_user.id,
+                MealLog.log_date >= date_from,
+                MealLog.log_date <= date_to,
+            )
+        )
+        .order_by(MealLog.log_date.asc())
+        .all()
+    )
+    response: list[MealLogDayResponse] = []
+    for row in rows:
+        response.append(
+            MealLogDayResponse(
+                date=row.log_date,
+                items=[MealLogItemOut.model_validate(item) for item in row.items],
+            )
+        )
+    return response
+
+
 @router.post("/hydration/logs", status_code=status.HTTP_201_CREATED)
 def add_hydration_log(
     payload: HydrationCreateRequest,
@@ -138,4 +204,3 @@ def add_hydration_log(
     db.add(entry)
     db.commit()
     return {"status": "ok"}
-
