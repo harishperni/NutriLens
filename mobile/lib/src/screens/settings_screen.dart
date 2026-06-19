@@ -128,9 +128,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           FilledButton(
             onPressed: () async {
+              final messenger = ScaffoldMessenger.of(context);
               await widget.api.updateGoals(_goal!);
               if (!mounted) return;
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Goals saved')));
+              messenger.showSnackBar(const SnackBar(content: Text('Goals saved')));
             },
             child: const Text('Save Goals'),
           ),
@@ -175,9 +176,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           FilledButton(
             onPressed: () async {
+              final messenger = ScaffoldMessenger.of(context);
               await widget.api.updateNotificationPreferences(_prefs!);
               if (!mounted) return;
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Reminder settings saved')));
+              messenger.showSnackBar(const SnackBar(content: Text('Reminder settings saved')));
             },
             child: const Text('Save Reminders'),
           ),
@@ -225,4 +227,3 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 }
-

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:nutrilens_mobile/src/api_client.dart';
 import 'package:nutrilens_mobile/src/models.dart';
+import 'package:nutrilens_mobile/src/screens/barcode_lookup_screen.dart';
 
 class FoodSearchScreen extends StatefulWidget {
   const FoodSearchScreen({super.key, required this.api});
@@ -111,6 +112,17 @@ class _FoodSearchScreenState extends State<FoodSearchScreen> {
       appBar: AppBar(
         title: const Text('Food Search'),
         backgroundColor: const Color(0xFFF4F8F7),
+        actions: [
+          IconButton(
+            tooltip: 'Barcode lookup',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => BarcodeLookupScreen(api: widget.api)),
+              );
+            },
+            icon: const Icon(Icons.qr_code_scanner),
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
@@ -173,6 +185,7 @@ class _FoodSearchScreenState extends State<FoodSearchScreen> {
                       children: ['breakfast', 'lunch', 'dinner', 'snacks']
                           .map(
                             (type) => ChoiceChip(
+                              avatar: _mealType == type ? const Icon(Icons.check, size: 18) : null,
                               label: Text(type),
                               selected: _mealType == type,
                               onSelected: (_) {
@@ -226,14 +239,20 @@ class _FoodSearchScreenState extends State<FoodSearchScreen> {
                           itemCount: _results.length,
                           itemBuilder: (context, index) {
                             final item = _results[index];
+                            final sourceColor = item.source == 'USDA'
+                                ? const Color(0xFFD8F3DC)
+                                : item.source == 'SPOONACULAR'
+                                    ? const Color(0xFFFFE3B3)
+                                    : const Color(0xFFDDEBFF);
                             return AnimatedContainer(
                               duration: const Duration(milliseconds: 220),
                               margin: const EdgeInsets.only(bottom: 8),
                               child: Card(
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
+                                  borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: ListTile(
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                   title: Text(
                                     item.displayName,
                                     style: const TextStyle(fontWeight: FontWeight.w600),
@@ -242,38 +261,62 @@ class _FoodSearchScreenState extends State<FoodSearchScreen> {
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       const SizedBox(height: 4),
-                                      Text(
-                                        '${item.caloriesPer100g.toStringAsFixed(0)} kcal/100g '
-                                        'P ${item.proteinPer100g.toStringAsFixed(1)} '
-                                        'C ${item.carbsPer100g.toStringAsFixed(1)} '
-                                        'F ${item.fatPer100g.toStringAsFixed(1)}',
+                                      Wrap(
+                                        spacing: 6,
+                                        runSpacing: 4,
+                                        children: [
+                                          _nutritionChip('${item.caloriesPer100g.toStringAsFixed(0)} kcal'),
+                                          _nutritionChip('P ${item.proteinPer100g.toStringAsFixed(1)}g'),
+                                          _nutritionChip('C ${item.carbsPer100g.toStringAsFixed(1)}g'),
+                                          _nutritionChip('F ${item.fatPer100g.toStringAsFixed(1)}g'),
+                                        ],
                                       ),
                                       const SizedBox(height: 6),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 3,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: item.source == 'USDA'
-                                              ? const Color(0xFFD8F3DC)
-                                              : const Color(0xFFDDEBFF),
-                                          borderRadius: BorderRadius.circular(12),
-                                        ),
-                                        child: Text(
-                                          item.source,
-                                          style: const TextStyle(fontSize: 12),
-                                        ),
+                                      Wrap(
+                                        spacing: 6,
+                                        runSpacing: 4,
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                              vertical: 3,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: sourceColor,
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                            child: Text(
+                                              item.source,
+                                              style: const TextStyle(fontSize: 12),
+                                            ),
+                                          ),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                              vertical: 3,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFE8F5F2),
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                            child: Text(
+                                              'logs to $_mealType',
+                                              style: const TextStyle(fontSize: 12),
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ],
-                  ),
+                                  ),
                                   trailing: SizedBox(
-                                    width: 124,
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.end,
+                                    width: 104,
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      crossAxisAlignment: CrossAxisAlignment.end,
                                       children: [
                                         IconButton(
                                           tooltip: 'Favorite',
+                                          visualDensity: VisualDensity.compact,
                                           onPressed: () => _toggleFavorite(item),
                                           icon: Icon(
                                             _favoriteFoodIds.contains(item.id)
@@ -284,9 +327,12 @@ class _FoodSearchScreenState extends State<FoodSearchScreen> {
                                                 : null,
                                           ),
                                         ),
-                                        FilledButton.tonal(
-                                          onPressed: () => _logFood(item),
-                                          child: const Text('Log'),
+                                        SizedBox(
+                                          height: 32,
+                                          child: FilledButton(
+                                            onPressed: () => _logFood(item),
+                                            child: const Text('Log'),
+                                          ),
                                         ),
                                       ],
                                     ),
@@ -300,6 +346,17 @@ class _FoodSearchScreenState extends State<FoodSearchScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _nutritionChip(String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(
+        border: Border.all(color: const Color(0xFFCAD8D4)),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(text, style: const TextStyle(fontSize: 12)),
     );
   }
 }

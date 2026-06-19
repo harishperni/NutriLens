@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:nutrilens_mobile/src/api_client.dart';
-import 'package:nutrilens_mobile/src/screens/dashboard_screen.dart';
+import 'package:nutrilens_mobile/src/screens/home_shell.dart';
 
 void main() {
   runApp(const NutriLensApp());
@@ -23,10 +23,7 @@ class _NutriLensAppState extends State<NutriLensApp> {
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF006A6A)),
         useMaterial3: true,
       ),
-      home: DashboardScreen(
-        api: api,
-        onLogout: () {},
-      ),
+      home: HomeShell(api: api),
     );
   }
 }

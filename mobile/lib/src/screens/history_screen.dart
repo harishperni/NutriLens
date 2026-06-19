@@ -68,7 +68,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
               ),
               const SizedBox(height: 10),
               DropdownButtonFormField<String>(
-                value: mealType,
+                initialValue: mealType,
                 items: const ['breakfast', 'lunch', 'dinner', 'snacks']
                     .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                     .toList(),
@@ -210,4 +210,3 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
   }
 }
-

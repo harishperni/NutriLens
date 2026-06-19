@@ -100,7 +100,7 @@ class _BarcodeLookupScreenState extends State<BarcodeLookupScreen> {
               children: [
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: _mealType,
+                    initialValue: _mealType,
                     items: const ['breakfast', 'lunch', 'dinner', 'snacks']
                         .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                         .toList(),
@@ -126,4 +126,3 @@ class _BarcodeLookupScreenState extends State<BarcodeLookupScreen> {
     );
   }
 }
-
