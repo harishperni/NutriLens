@@ -37,8 +37,20 @@ def get_spoonacular_api_key() -> str:
     return _get_secret("SPOONACULAR_API_KEY")
 
 
+def get_jwt_secret() -> str:
+    return _get_secret("JWT_SECRET") or "dev-only-change-me"
+
+
 def external_food_apis_enabled() -> bool:
     return os.getenv("ENABLE_EXTERNAL_FOOD_APIS", "true").lower() in {
+        "1",
+        "true",
+        "yes",
+    }
+
+
+def debug_api_enabled() -> bool:
+    return os.getenv("ENABLE_DEBUG_API", "false").lower() in {
         "1",
         "true",
         "yes",

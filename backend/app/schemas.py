@@ -60,9 +60,27 @@ class FoodOut(BaseModel):
     protein_g_per_100g: float
     carbs_g_per_100g: float
     fat_g_per_100g: float
+    fiber_g_per_100g: float
+    sugar_g_per_100g: float
+    added_sugar_g_per_100g: float
+    net_carbs_g_per_100g: float
+    saturated_fat_g_per_100g: float
+    trans_fat_g_per_100g: float
+    monounsaturated_fat_g_per_100g: float
+    polyunsaturated_fat_g_per_100g: float
+    cholesterol_mg_per_100g: float
     sodium_mg_per_100g: float
+    potassium_mg_per_100g: float
+    magnesium_mg_per_100g: float
+    phosphorus_mg_per_100g: float
+    zinc_mg_per_100g: float
     iron_mg_per_100g: float
     calcium_mg_per_100g: float
+    vitamin_a_mcg_per_100g: float
+    vitamin_c_mg_per_100g: float
+    vitamin_d_mcg_per_100g: float
+    vitamin_b12_mcg_per_100g: float
+    folate_mcg_per_100g: float
 
     model_config = ConfigDict(from_attributes=True)
 

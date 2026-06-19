@@ -3,9 +3,14 @@ import 'package:nutrilens_mobile/src/api_client.dart';
 import 'package:nutrilens_mobile/src/models.dart';
 
 class HistoryScreen extends StatefulWidget {
-  const HistoryScreen({super.key, required this.api});
+  const HistoryScreen({
+    super.key,
+    required this.api,
+    this.onMealLogChanged,
+  });
 
   final ApiClient api;
+  final VoidCallback? onMealLogChanged;
 
   @override
   State<HistoryScreen> createState() => _HistoryScreenState();
@@ -27,11 +32,17 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   String get _dateStr => _date.toIso8601String().split('T').first;
 
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+  Future<void> _load({bool showSpinner = true}) async {
+    if (showSpinner) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    } else {
+      setState(() {
+        _error = null;
+      });
+    }
     try {
       final day = await widget.api.getMealLogDay(_dateStr);
       final saved = await widget.api.getSavedMeals();
@@ -89,12 +100,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
     final grams = double.tryParse(ctrl.text) ?? item.grams;
     await widget.api.updateMealLogItem(itemId: item.id, mealType: mealType, grams: grams);
-    _load();
+    widget.onMealLogChanged?.call();
+    _load(showSpinner: false);
   }
 
   Future<void> _deleteItem(int id) async {
     await widget.api.deleteMealLogItem(id);
-    _load();
+    widget.onMealLogChanged?.call();
+    _load(showSpinner: false);
   }
 
   Future<void> _saveCurrentAsTemplate() async {
@@ -114,12 +127,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
     if (ok != true) return;
     await widget.api.createSavedMeal(name: ctrl.text.trim(), items: items);
-    _load();
+    _load(showSpinner: false);
   }
 
   Future<void> _logSavedMeal(int id) async {
     await widget.api.logSavedMeal(savedMealId: id, date: _dateStr);
-    _load();
+    widget.onMealLogChanged?.call();
+    _load(showSpinner: false);
   }
 
   @override

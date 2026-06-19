@@ -3,9 +3,14 @@ import 'package:nutrilens_mobile/src/api_client.dart';
 import 'package:nutrilens_mobile/src/models.dart';
 
 class BarcodeLookupScreen extends StatefulWidget {
-  const BarcodeLookupScreen({super.key, required this.api});
+  const BarcodeLookupScreen({
+    super.key,
+    required this.api,
+    this.onMealLogChanged,
+  });
 
   final ApiClient api;
+  final VoidCallback? onMealLogChanged;
 
   @override
   State<BarcodeLookupScreen> createState() => _BarcodeLookupScreenState();
@@ -55,6 +60,7 @@ class _BarcodeLookupScreenState extends State<BarcodeLookupScreen> {
       foodId: _food!.id,
       grams: grams,
     );
+    widget.onMealLogChanged?.call();
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Logged from barcode')));
   }

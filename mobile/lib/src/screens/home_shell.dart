@@ -17,14 +17,25 @@ class HomeShell extends StatefulWidget {
 
 class _HomeShellState extends State<HomeShell> {
   int _index = 0;
+  int _mealLogVersion = 0;
+
+  void _onMealLogChanged() {
+    setState(() {
+      _mealLogVersion += 1;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final screens = [
-      DashboardScreen(api: widget.api, onLogout: () {}),
-      FoodSearchScreen(api: widget.api),
-      HistoryScreen(api: widget.api),
-      WeeklyProgressScreen(api: widget.api),
+      DashboardScreen(
+        api: widget.api,
+        onLogout: () {},
+        refreshToken: _mealLogVersion,
+      ),
+      FoodSearchScreen(api: widget.api, onMealLogChanged: _onMealLogChanged),
+      HistoryScreen(api: widget.api, onMealLogChanged: _onMealLogChanged),
+      WeeklyProgressScreen(api: widget.api, refreshToken: _mealLogVersion),
       SettingsScreen(api: widget.api),
     ];
 

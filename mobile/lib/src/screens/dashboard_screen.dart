@@ -9,10 +9,12 @@ class DashboardScreen extends StatefulWidget {
     super.key,
     required this.api,
     required this.onLogout,
+    this.refreshToken = 0,
   });
 
   final ApiClient api;
   final VoidCallback onLogout;
+  final int refreshToken;
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -31,11 +33,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _load();
   }
 
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+  @override
+  void didUpdateWidget(covariant DashboardScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.refreshToken != oldWidget.refreshToken) {
+      _load(showSpinner: _data == null);
+    }
+  }
+
+  Future<void> _load({bool showSpinner = true}) async {
+    if (showSpinner) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    } else {
+      setState(() {
+        _error = null;
+      });
+    }
     try {
       final data = await widget.api.getDashboard(_today);
       setState(() {
@@ -55,7 +71,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Future<void> _addWater() async {
     try {
       await widget.api.addWater(date: _today, amountMl: 250);
-      await _load();
+      if (!mounted) return;
+      final data = _data;
+      if (data != null) {
+        setState(() {
+          _data = data.copyWith(waterMl: data.waterMl + 250);
+        });
+      }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -119,7 +141,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   builder: (_) => BarcodeLookupScreen(api: widget.api),
                 ),
               );
-              if (mounted) _load();
+              if (mounted) _load(showSpinner: false);
             },
             icon: const Icon(Icons.qr_code),
             label: const Text('Barcode'),
@@ -134,7 +156,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               );
               if (mounted) {
-                _load();
+                _load(showSpinner: false);
               }
             },
             icon: const Icon(Icons.add),

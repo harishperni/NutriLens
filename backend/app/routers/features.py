@@ -245,33 +245,55 @@ def get_weekly_summary(
     db: Session = Depends(get_db),
 ):
     start_date = end_date - timedelta(days=6)
-    day_rows: list[WeeklySummaryDay] = []
-    for offset in range(7):
-        day = start_date + timedelta(days=offset)
-        sums = (
+    nutrition_by_day = {
+        row[0]: row
+        for row in (
             db.query(
+                MealLog.log_date,
                 func.coalesce(func.sum(MealLogItem.calories), 0.0),
                 func.coalesce(func.sum(MealLogItem.protein_g), 0.0),
                 func.coalesce(func.sum(MealLogItem.carbs_g), 0.0),
                 func.coalesce(func.sum(MealLogItem.fat_g), 0.0),
             )
-            .join(MealLog, MealLog.id == MealLogItem.meal_log_id)
-            .filter(MealLog.user_id == current_user.id, MealLog.log_date == day)
-            .one()
+            .join(MealLogItem, MealLogItem.meal_log_id == MealLog.id)
+            .filter(
+                MealLog.user_id == current_user.id,
+                MealLog.log_date >= start_date,
+                MealLog.log_date <= end_date,
+            )
+            .group_by(MealLog.log_date)
+            .all()
         )
-        water_ml = (
-            db.query(func.coalesce(func.sum(HydrationLog.amount_ml), 0))
-            .filter(HydrationLog.user_id == current_user.id, HydrationLog.log_date == day)
-            .scalar()
+    }
+    water_by_day = {
+        row[0]: int(row[1] or 0)
+        for row in (
+            db.query(
+                HydrationLog.log_date,
+                func.coalesce(func.sum(HydrationLog.amount_ml), 0),
+            )
+            .filter(
+                HydrationLog.user_id == current_user.id,
+                HydrationLog.log_date >= start_date,
+                HydrationLog.log_date <= end_date,
+            )
+            .group_by(HydrationLog.log_date)
+            .all()
         )
+    }
+
+    day_rows: list[WeeklySummaryDay] = []
+    for offset in range(7):
+        day = start_date + timedelta(days=offset)
+        sums = nutrition_by_day.get(day)
         day_rows.append(
             WeeklySummaryDay(
                 date=day,
-                calories=float(sums[0]),
-                protein_g=float(sums[1]),
-                carbs_g=float(sums[2]),
-                fat_g=float(sums[3]),
-                water_ml=int(water_ml),
+                calories=float(sums[1]) if sums else 0.0,
+                protein_g=float(sums[2]) if sums else 0.0,
+                carbs_g=float(sums[3]) if sums else 0.0,
+                fat_g=float(sums[4]) if sums else 0.0,
+                water_ml=water_by_day.get(day, 0),
             )
         )
 
@@ -316,4 +338,3 @@ def update_notification_preferences(
     db.commit()
     db.refresh(pref)
     return NotificationPreferenceOut.model_validate(pref)
-

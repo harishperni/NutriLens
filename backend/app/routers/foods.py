@@ -5,7 +5,7 @@ from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from typing import List, Optional
 
-from app.config import external_food_apis_enabled
+from app.config import debug_api_enabled, external_food_apis_enabled
 from app.deps import get_current_user, get_db
 from app.external_food_apis import (
     debug_spoonacular,
@@ -79,6 +79,57 @@ def _merge_unique_foods(foods: List[Food]) -> List[Food]:
 def _fuzzy_rank(query: str, foods: List[Food], limit: int = 30) -> List[Food]:
     query_normalized = _normalize(query)
     query_tokens = _tokenize(query)
+    generic_preference_tokens = {
+        "beef",
+        "chicken",
+        "egg",
+        "fish",
+        "milk",
+        "oats",
+        "potato",
+        "rice",
+        "salmon",
+        "steak",
+        "tuna",
+        "turkey",
+        "yogurt",
+    }
+    preparation_terms = {
+        "baked",
+        "boiled",
+        "boneless",
+        "broiled",
+        "cooked",
+        "grilled",
+        "lean",
+        "raw",
+        "roasted",
+        "skinless",
+    }
+    packaged_terms = {
+        "breaded",
+        "canned",
+        "cured",
+        "deli",
+        "frozen",
+        "lunchmeat",
+        "nuggets",
+        "patty",
+        "roll",
+        "seasoned",
+        "sliced",
+        "strips",
+        "tenders",
+    }
+    heavily_processed_terms = {
+        "breaded",
+        "lunchmeat",
+        "nuggets",
+        "patty",
+        "roll",
+        "tenders",
+    }
+    looks_generic_query = any(token in generic_preference_tokens for token in query_tokens)
     scored = []
     for food in foods:
         name_normalized = _normalize(food.name or "")
@@ -94,6 +145,7 @@ def _fuzzy_rank(query: str, foods: List[Food], limit: int = 30) -> List[Food]:
         prefix_name_matches = 0
         loose_name_matches = 0
         brand_matches = 0
+        brand_specific_matches = 0
         for token in query_tokens:
             if token in name_tokens:
                 exact_name_matches += 1
@@ -104,6 +156,8 @@ def _fuzzy_rank(query: str, foods: List[Food], limit: int = 30) -> List[Food]:
 
             if token in brand_tokens:
                 brand_matches += 1
+                if token not in name_tokens:
+                    brand_specific_matches += 1
 
         score = 0.0
         if query_normalized and query_normalized in name_normalized:
@@ -119,9 +173,37 @@ def _fuzzy_rank(query: str, foods: List[Food], limit: int = 30) -> List[Food]:
         score += loose_name_matches * 0.7
         score += brand_matches * 1.0
 
+        if query_normalized and name_normalized == query_normalized:
+            score += 7.0
+        elif query_normalized and name_normalized.startswith(f"{query_normalized} "):
+            score += 4.0
+        elif query_normalized and name_normalized.startswith(f"{query_normalized},"):
+            score += 5.0
+
         # Phrase similarity is useful as a weak tiebreaker.
         score += SequenceMatcher(None, query_normalized, name_normalized).ratio() * 2.0
         score += SequenceMatcher(None, query_normalized, combined).ratio() * 0.8
+
+        extra_name_tokens = name_tokens.difference(query_tokens)
+        name_match_count = exact_name_matches + prefix_name_matches + loose_name_matches
+        brand_food_combo_match = bool(brand_normalized and brand_specific_matches > 0 and name_match_count > 0)
+        if looks_generic_query and not brand_normalized:
+            score += 9.0
+            if extra_name_tokens.intersection(preparation_terms):
+                score += 1.5
+        elif brand_food_combo_match:
+            score += 10.0
+        elif brand_normalized:
+            score -= 2.0
+
+        if looks_generic_query and extra_name_tokens.intersection(packaged_terms):
+            score -= 2.0
+        if looks_generic_query and extra_name_tokens.intersection(heavily_processed_terms):
+            score -= 6.0
+
+        # Prefer clean, focused names over long product descriptions for generic searches.
+        if looks_generic_query:
+            score -= min(len(extra_name_tokens), 8) * 0.25
 
         # If query has multiple tokens, heavily de-prioritize brand-only matches.
         if len(query_tokens) >= 2 and exact_name_matches == 0 and prefix_name_matches == 0 and loose_name_matches == 0:
@@ -129,10 +211,16 @@ def _fuzzy_rank(query: str, foods: List[Food], limit: int = 30) -> List[Food]:
 
         # Avoid returning completely unrelated rows.
         if score > 0.2:
-            scored.append((score, food))
+            if brand_food_combo_match:
+                rank_bucket = 2
+            elif not brand_normalized:
+                rank_bucket = 1
+            else:
+                rank_bucket = 0
+            scored.append((rank_bucket, score, food))
 
-    scored.sort(key=lambda row: row[0], reverse=True)
-    return [food for _, food in scored[:limit]]
+    scored.sort(key=lambda row: (row[0], row[1]), reverse=True)
+    return [food for _, _, food in scored[:limit]]
 
 
 @router.get("/search", response_model=list[FoodOut])
@@ -237,4 +325,6 @@ def spoon_debug(
     q: str = "pizza",
     _: User = Depends(get_current_user),
 ):
+    if not debug_api_enabled():
+        raise HTTPException(status_code=404, detail="Not found")
     return debug_spoonacular(q, limit=5)

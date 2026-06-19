@@ -44,6 +44,12 @@ def upsert_foods(db: Session, foods: Iterable[Dict]) -> int:
         payload["serving_description"] = str(payload.get("serving_description", "100 g"))[:120]
         existing = find_existing_food(db, payload)
         if existing:
+            for key, value in payload.items():
+                if key in {"id", "name", "brand", "barcode", "source"}:
+                    continue
+                if hasattr(existing, key):
+                    setattr(existing, key, value)
+            db.commit()
             continue
         try:
             db.add(Food(**payload))

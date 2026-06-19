@@ -23,11 +23,17 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     _load();
   }
 
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+  Future<void> _load({bool showSpinner = true}) async {
+    if (showSpinner) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    } else {
+      setState(() {
+        _error = null;
+      });
+    }
     try {
       final favorites = await widget.api.getFavorites();
       final recent = await widget.api.getRecentFoods();
@@ -49,7 +55,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   Future<void> _favoriteRecent(FavoriteFoodData food) async {
     if (food.foodId <= 0) return;
     await widget.api.addFavorite(food.foodId);
-    _load();
+    _load(showSpinner: false);
   }
 
   @override
@@ -74,7 +80,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                             icon: const Icon(Icons.favorite, color: Colors.red),
                             onPressed: () async {
                               await widget.api.removeFavorite(fav.id);
-                              _load();
+                              _load(showSpinner: false);
                             },
                           ),
                         ),
@@ -101,4 +107,3 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     );
   }
 }
-

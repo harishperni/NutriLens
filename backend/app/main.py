@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from app.db import Base, SessionLocal, engine
+from app.db import Base, SessionLocal, engine, ensure_food_columns
 from app.routers import auth, dashboard, features, foods, meals, profile
 from app.seed import seed_foods_if_empty
 
@@ -10,6 +10,7 @@ from app.seed import seed_foods_if_empty
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     Base.metadata.create_all(bind=engine)
+    ensure_food_columns(engine)
     db = SessionLocal()
     try:
         seed_foods_if_empty(db)

@@ -1,6 +1,6 @@
 from typing import Optional
 
-from fastapi import Depends
+from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
@@ -72,9 +72,15 @@ def get_current_user(
     try:
         username = decode_access_token(token)
     except ValueError:
-        return _get_or_create_guest_user(db)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication token",
+        )
 
     user = db.query(User).filter(User.username == username).first()
     if not user:
-        return _get_or_create_guest_user(db)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication token",
+        )
     return user
